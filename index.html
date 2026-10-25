@@ -57,6 +57,30 @@
     <section id="result" hidden>
       <div class="control-group result-meta" id="result-meta"></div>
 
+      <div class="control-group" id="forecast-section">
+        <h2>今週の星読み</h2>
+        <div class="forecast-controls">
+          <label>週の初日
+            <input type="date" id="week-start">
+          </label>
+          <label>名前（伝える文章用・任意）
+            <input type="text" id="forecast-name" maxlength="20" placeholder="例：さくら">
+          </label>
+          <button type="button" class="btn btn-primary" id="week-btn">この週を見る</button>
+        </div>
+        <div class="forecast-highlights" id="forecast-highlights"></div>
+        <div class="forecast-strip" id="forecast-strip"></div>
+        <div class="forecast-days" id="forecast-days"></div>
+        <div class="forecast-message">
+          <div class="forecast-message-head">
+            <h3>伝える文章</h3>
+            <button type="button" class="btn btn-sm btn-copy" id="copy-btn">コピー</button>
+          </div>
+          <textarea id="forecast-message" rows="12" readonly></textarea>
+        </div>
+        <p class="note">出生図と1週間の天体の動き（トランジット）から計算しています。星占いは楽しみや気持ちの目安としてお使いください。</p>
+      </div>
+
       <div class="control-group">
         <h2>ホロスコープ</h2>
         <div class="wheel" id="wheel"></div>
@@ -118,6 +142,7 @@
 
   <script src="horoscope-calc.js"></script>
   <script src="horoscope-wheel.js"></script>
+  <script src="horoscope-forecast.js"></script>
   <script src="horoscope.js"></script>
 </body>
 </html>

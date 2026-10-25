@@ -181,10 +181,197 @@
   color: #2b6cb0;
 }
 
+.forecast-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.forecast-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.forecast-controls input {
+  padding: 8px 10px;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.forecast-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fc-highlight {
+  border-radius: 8px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.fc-highlight h3 {
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.fc-highlight p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.fc-highlight .fc-date {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.fc-highlight-lucky { background: #fffbea; border-color: #f6e05e; }
+.fc-highlight-lucky h3, .fc-highlight-lucky .fc-date { color: #b7791f; }
+.fc-highlight-caution { background: #fff5f5; border-color: #feb2b2; }
+.fc-highlight-caution h3, .fc-highlight-caution .fc-date { color: #c53030; }
+.fc-highlight-week { background: #f7fafc; grid-column: 1 / -1; }
+
+.forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(84px, 1fr));
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+}
+
+.fc-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #2d3748;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.fc-day:hover { border-color: #2b6cb0; }
+.fc-day .fc-md { font-size: 1.05rem; font-weight: 700; }
+.fc-day .fc-wd, .fc-day .fc-moon { color: #718096; font-size: 0.8rem; }
+.fc-day.fc-lucky { background: #fffbea; border-color: #f6e05e; }
+.fc-day.fc-caution { background: #fff5f5; border-color: #feb2b2; }
+.fc-day.fc-best { border-width: 2.5px; border-color: #d69e2e; }
+
+.fc-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fc-lucky .fc-badge { color: #b7791f; }
+.fc-caution .fc-badge { color: #c53030; }
+.fc-normal .fc-badge { color: #718096; }
+
+.forecast-days {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fc-detail {
+  border-left: 4px solid #cbd5e0;
+  padding: 6px 0 6px 12px;
+}
+
+.fc-detail.fc-lucky { border-left-color: #ecc94b; }
+.fc-detail.fc-caution { border-left-color: #fc8181; }
+
+.fc-detail h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 1rem;
+}
+
+.fc-moonline {
+  font-size: 0.88rem;
+  color: #4a5568;
+  margin: 4px 0;
+}
+
+.fc-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.fc-mark {
+  display: inline-block;
+  width: 1.4em;
+  font-weight: 700;
+}
+
+.fc-good .fc-mark { color: #2f855a; }
+.fc-bad .fc-mark { color: #c53030; }
+.fc-event .fc-mark { color: #b7791f; }
+
+.fc-time {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #edf2f7;
+  color: #4a5568;
+  font-size: 0.8rem;
+}
+
+.forecast-message {
+  margin-top: 20px;
+}
+
+.forecast-message-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.forecast-message-head h3 {
+  font-size: 0.95rem;
+}
+
+.btn-copy {
+  background: #2f855a;
+  color: white;
+}
+
+.btn-copy:hover { background: #276749; }
+
+.forecast-message textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
 @media print {
   body { background: white; }
   header { box-shadow: none; }
-  .horo-form, .back-link { display: none; }
+  .horo-form, .back-link, .forecast-controls, .forecast-message { display: none; }
   #result .control-group { box-shadow: none; break-inside: avoid; }
 }
 

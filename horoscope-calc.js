@@ -216,5 +216,10 @@
     };
   }
 
-  return { SIGNS, PLANETS, ASPECTS, calculate, toSign, norm360 };
+  // 指定した瞬間（UTCミリ秒）の天体の黄経
+  function longitudeAt(key, utcMs) {
+    return norm360(planetLongitude(key, Astronomy.MakeTime(new Date(utcMs))));
+  }
+
+  return { SIGNS, PLANETS, ASPECTS, calculate, toSign, norm360, longitudeAt };
 });

@@ -220,6 +220,90 @@ function renderBalance(data) {
     row('エレメント', data.elements) + row('クオリティ', data.modes) + '</tbody>';
 }
 
+const weekStartInput = document.getElementById('week-start');
+const forecastName = document.getElementById('forecast-name');
+const forecastMessage = document.getElementById('forecast-message');
+const copyBtn = document.getElementById('copy-btn');
+let lastChart = null;
+
+function todayString(tzOffset) {
+  const d = new Date(Date.now() + tzOffset * 3600000);
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+const RATING_LABEL = { lucky: '★ ラッキー', caution: '⚠ 注意', normal: '・ おだやか' };
+
+function aspectLine(a) {
+  const time = a.hour !== null && a.hour !== undefined ? `<span class="fc-time">${a.hour}時ごろ</span>` : '';
+  const kind = a.score >= 0 ? 'good' : 'bad';
+  return `<li class="fc-${kind}"><span class="fc-mark">${a.score >= 0 ? '◎' : '△'}</span>${time}${a.text}</li>`;
+}
+
+function renderForecast() {
+  if (!lastChart) return;
+  const { input, data } = lastChart;
+  if (!weekStartInput.value) weekStartInput.value = todayString(input.tzOffset);
+  const [year, month, day] = weekStartInput.value.split('-').map(Number);
+  const week = HoroscopeForecast.weekly(data, { year, month, day, tzOffset: input.tzOffset, lat: input.lat, lon: input.lon });
+  const label = HoroscopeForecast.dayLabel;
+
+  const highlights = [];
+  if (week.luckyDay) {
+    const top = week.luckyDay.aspects.find(a => a.score > 0);
+    highlights.push(`<div class="fc-highlight fc-highlight-lucky"><h3>★ 逃さないでほしいラッキーデー</h3><p class="fc-date">${label(week.luckyDay)}</p><p>${top ? top.text : week.luckyDay.moonText}</p></div>`);
+  }
+  if (week.cautionDay) {
+    const top = week.cautionDay.aspects.find(a => a.score < 0);
+    highlights.push(`<div class="fc-highlight fc-highlight-caution"><h3>⚠ 気を付けたい日</h3><p class="fc-date">${label(week.cautionDay)}</p><p>${top ? top.text : week.cautionDay.moonText}</p></div>`);
+  }
+  const notes = [];
+  if (week.mercuryRetro) notes.push('<li class="fc-bad"><span class="fc-mark">△</span>今週は水星が逆行中。連絡ミスや予定の行き違いに気を付けて。</li>');
+  week.background.slice(0, 3).forEach(b => notes.push(aspectLine(b)));
+  if (notes.length) {
+    highlights.push(`<div class="fc-highlight fc-highlight-week"><h3>今週ずっと続く星の影響</h3><ul class="fc-list">${notes.join('')}</ul></div>`);
+  }
+  document.getElementById('forecast-highlights').innerHTML = highlights.join('');
+
+  document.getElementById('forecast-strip').innerHTML = week.days.map(d => `
+    <a class="fc-day fc-${d.rating}${d === week.luckyDay ? ' fc-best' : ''}" href="#fc-day-${d.index}">
+      <span class="fc-wd">${d.weekday}</span>
+      <span class="fc-md">${d.month}/${d.day}</span>
+      <span class="fc-badge">${RATING_LABEL[d.rating]}</span>
+      <span class="fc-moon">月 ${d.moonSign.symbol}︎</span>
+    </a>`).join('');
+
+  document.getElementById('forecast-days').innerHTML = week.days.map(d => `
+    <div class="fc-detail fc-${d.rating}" id="fc-day-${d.index}">
+      <h3>${label(d)}<span class="fc-badge">${RATING_LABEL[d.rating]}</span></h3>
+      <p class="fc-moonline">月は${d.moonSign.name}：${d.moonText}</p>
+      <ul class="fc-list">
+        ${d.events.map(e => `<li class="fc-event"><span class="fc-mark">☆</span>${e.text}</li>`).join('')}
+        ${d.aspects.slice(0, 3).map(aspectLine).join('')}
+      </ul>
+    </div>`).join('');
+
+  forecastMessage.value = HoroscopeForecast.toMessage(week, forecastName.value.trim());
+}
+
+document.getElementById('week-btn').addEventListener('click', renderForecast);
+forecastName.addEventListener('input', renderForecast);
+copyBtn.addEventListener('click', () => {
+  const done = () => {
+    copyBtn.textContent = 'コピーしました';
+    setTimeout(() => { copyBtn.textContent = 'コピー'; }, 2000);
+  };
+  const fallback = () => {
+    forecastMessage.focus();
+    forecastMessage.select();
+    copyBtn.textContent = '選択しました。コピーしてください';
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(forecastMessage.value).then(done, fallback);
+  } else {
+    fallback();
+  }
+});
+
 form.addEventListener('submit', e => {
   e.preventDefault();
   errorText.hidden = true;
@@ -236,6 +320,8 @@ form.addEventListener('submit', e => {
     renderHouses(data);
     renderAspects(data);
     renderBalance(data);
+    lastChart = { input, data };
+    renderForecast();
     result.hidden = false;
     printBtn.hidden = false;
     result.scrollIntoView({ behavior: 'smooth', block: 'start' });
