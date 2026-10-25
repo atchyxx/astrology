@@ -146,12 +146,95 @@ function renderMeta(input, data) {
     '<h2>基本データ</h2><dl>' + rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('') + '</dl>';
 }
 
-function renderWheel(data) {
-  document.getElementById('wheel').innerHTML = HoroscopeWheel.render(data);
-  document.getElementById('wheel-note').textContent = data.houses
-    ? 'アセンダント（ASC）を左に置いています。中心の線はアスペクト（緑：120°、青点線：60°、赤：90°、橙：180°）です。'
-    : '時刻不明のため、牡羊座0°を左に置き、ハウスは表示していません。中心の線はアスペクト（緑：120°、青点線：60°、赤：90°、橙：180°）です。';
+const ASPECT_LINE_NOTE = '線の色はアスペクト（緑：120°、青点線：60°、赤：90°、橙：180°）です。';
+let wheelMode = 'natal';
+let wheelChart = null;
+let todayChart = null;
+
+// 出生地の時差・緯度経度で、今この瞬間のチャートを計算する
+function calcToday(input) {
+  const now = new Date(Date.now() + input.tzOffset * 3600000);
+  return {
+    at: now,
+    data: HoroscopeCalc.calculate({
+      year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate(),
+      hour: now.getUTCHours(), minute: now.getUTCMinutes(),
+      tzOffset: input.tzOffset, lat: input.lat, lon: input.lon,
+      timeKnown: true, houseSystem: input.houseSystem,
+    }),
+  };
 }
+
+function houseOfLon(lon, cusps) {
+  for (let i = 0; i < 12; i++) {
+    const width = HoroscopeCalc.norm360(cusps[(i + 1) % 12] - cusps[i]);
+    if (HoroscopeCalc.norm360(lon - cusps[i]) < width) return i + 1;
+  }
+  return 1;
+}
+
+function renderToday() {
+  const panel = document.getElementById('today-panel');
+  panel.hidden = wheelMode === 'natal';
+  if (panel.hidden) return;
+  const { at, data } = todayChart;
+  const natal = wheelChart.data;
+  // 二重円では今日の星が出生図のどのハウスにあるか、今日の星だけなら今日のハウス
+  const cusps = wheelMode === 'both' ? natal.houses && natal.houses.cusps : data.houses.cusps;
+  document.getElementById('today-title').textContent =
+    `今日の星（${at.getUTCFullYear()}年${at.getUTCMonth() + 1}月${at.getUTCDate()}日 ${pad2(at.getUTCHours())}:${pad2(at.getUTCMinutes())} 現在）`;
+  document.getElementById('today-house-head').textContent = wheelMode === 'both' ? '出生図のハウス' : 'ハウス';
+  document.querySelector('#today-table tbody').innerHTML = data.points
+    .filter(p => p.key !== 'Node' && (wheelMode === 'today' || (p.key !== 'ASC' && p.key !== 'MC')))
+    .map(p => `
+    <tr>
+      <td class="point-name"><span class="planet-symbol">${ASPECT_POINTS_LABEL[p.key] ? '' : p.symbol}</span>${p.name}${p.retrograde && p.speed !== null ? '<span class="retro">R</span>' : ''}</td>
+      <td class="sign-name">${signCell(p.position)}</td>
+      <td class="num">${formatDegMin(p.position)}</td>
+      <td class="num">${cusps ? houseOfLon(p.lon, cusps) : '—'}</td>
+    </tr>`).join('');
+}
+
+function renderWheel(input, data) {
+  if (input) {
+    wheelChart = { input, data };
+    todayChart = calcToday(input);
+  }
+  const natal = wheelChart.data;
+  const today = todayChart.data;
+  let svg, note;
+  if (wheelMode === 'today') {
+    svg = HoroscopeWheel.render(today);
+    note = `今この時刻に、出生地から見た星の配置です。アセンダント（ASC）を左に置いています。${ASPECT_LINE_NOTE}`;
+  } else if (wheelMode === 'both') {
+    svg = HoroscopeWheel.render(natal, today);
+    note = `内側が出生図、外側の紫の記号が今日の星です。中心の線は今日の星と出生図の天体のアスペクト（オーブ3°以内）で、${ASPECT_LINE_NOTE.replace('線の色は', '色は')}`;
+  } else {
+    svg = HoroscopeWheel.render(natal);
+    note = natal.houses
+      ? `アセンダント（ASC）を左に置いています。中心の${ASPECT_LINE_NOTE}`
+      : `時刻不明のため、牡羊座0°を左に置き、ハウスは表示していません。中心の${ASPECT_LINE_NOTE}`;
+  }
+  document.getElementById('wheel').innerHTML = svg;
+  document.getElementById('wheel-note').textContent = note;
+  renderToday();
+}
+
+document.querySelectorAll('.wheel-tab').forEach(tab => tab.addEventListener('click', () => {
+  wheelMode = tab.dataset.wheel;
+  document.querySelectorAll('.wheel-tab').forEach(t => {
+    const active = t === tab;
+    t.classList.toggle('is-active', active);
+    t.setAttribute('aria-pressed', String(active));
+  });
+  if (wheelChart) renderWheel();
+}));
+
+document.getElementById('today-refresh').addEventListener('click', () => {
+  if (!wheelChart) return;
+  todayChart = calcToday(wheelChart.input);
+  renderWheel();
+});
 
 function renderPlanets(data) {
   const tbody = document.querySelector('#planet-table tbody');
@@ -225,7 +308,7 @@ const monthPick = document.getElementById('month-pick');
 const forecastName = document.getElementById('forecast-name');
 const forecastMessage = document.getElementById('forecast-message');
 const copyBtn = document.getElementById('copy-btn');
-const periodTabs = document.querySelectorAll('.fc-tab');
+const periodTabs = document.querySelectorAll('.fc-tab[data-period]');
 let lastChart = null;
 let period = 'week';
 let lastForecast = null;
@@ -243,6 +326,43 @@ function todayString(tzOffset) {
 function nextMonthString(tzOffset) {
   const t = localToday(tzOffset);
   return t.month === 12 ? `${t.year + 1}-01` : `${t.year}-${pad2(t.month + 1)}`;
+}
+
+// 選んだ月の前後2年分を選択肢にする（type="month" が使えないブラウザがあるため select を使う）
+function setMonthValue(value) {
+  const [year, month] = value.split('-').map(Number);
+  const options = [];
+  for (let k = -24; k <= 24; k++) {
+    const total = year * 12 + (month - 1) + k;
+    const y = Math.floor(total / 12), m = total % 12 + 1;
+    options.push(`<option value="${y}-${pad2(m)}">${y}年${m}月</option>`);
+  }
+  monthPick.innerHTML = options.join('');
+  monthPick.value = value;
+}
+
+function shiftPeriod(step) {
+  if (!lastChart) return;
+  if (period === 'month') {
+    const [year, month] = monthPick.value.split('-').map(Number);
+    const total = year * 12 + (month - 1) + step;
+    setMonthValue(`${Math.floor(total / 12)}-${pad2(total % 12 + 1)}`);
+  } else {
+    const [year, month, day] = weekStartInput.value.split('-').map(Number);
+    const d = new Date(Date.UTC(year, month - 1, day + step * 7));
+    weekStartInput.value = `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+  }
+  renderForecast();
+}
+
+function updateStepLabels() {
+  const unit = period === 'month' ? '月' : '週';
+  const prev = document.getElementById('fc-prev');
+  const next = document.getElementById('fc-next');
+  prev.textContent = `‹ 前の${unit}`;
+  next.textContent = `次の${unit} ›`;
+  prev.setAttribute('aria-label', `前の${unit}`);
+  next.setAttribute('aria-label', `次の${unit}`);
 }
 
 function forecastTitle(f, tzOffset) {
@@ -283,8 +403,9 @@ function setPeriod(next) {
   document.getElementById('month-label').hidden = period !== 'month';
   if (lastChart) {
     if (period === 'week') weekStartInput.value = todayString(lastChart.input.tzOffset);
-    else monthPick.value = nextMonthString(lastChart.input.tzOffset);
+    else setMonthValue(nextMonthString(lastChart.input.tzOffset));
   }
+  updateStepLabels();
   renderForecast();
 }
 
@@ -294,7 +415,7 @@ function renderForecast() {
   const place = { tzOffset: input.tzOffset, lat: input.lat, lon: input.lon };
   let f;
   if (period === 'month') {
-    if (!monthPick.value) monthPick.value = nextMonthString(input.tzOffset);
+    if (!monthPick.value) setMonthValue(nextMonthString(input.tzOffset));
     const [year, month] = monthPick.value.split('-').map(Number);
     f = HoroscopeForecast.monthly(data, { year, month, ...place });
   } else {
@@ -305,7 +426,8 @@ function renderForecast() {
   const isMonth = f.kind === 'month';
   const title = forecastTitle(f, input.tzOffset);
   const label = HoroscopeForecast.dayLabel;
-  document.getElementById('forecast-title').textContent = `${title}（${HoroscopeForecast.periodLabel(f)}）`;
+  const periodText = HoroscopeForecast.periodLabel(f);
+  document.getElementById('forecast-title').textContent = title.startsWith(periodText) ? title : `${title}（${periodText}）`;
 
   const highlights = [
     highlightCard('lucky', '★ 逃さないでほしいラッキーデー', f.luckyDays, 1),
@@ -380,6 +502,10 @@ document.getElementById('forecast-section').addEventListener('click', e => {
 
 periodTabs.forEach(tab => tab.addEventListener('click', () => setPeriod(tab.dataset.period)));
 document.getElementById('week-btn').addEventListener('click', renderForecast);
+document.getElementById('fc-prev').addEventListener('click', () => shiftPeriod(-1));
+document.getElementById('fc-next').addEventListener('click', () => shiftPeriod(1));
+weekStartInput.addEventListener('change', () => { if (weekStartInput.value) renderForecast(); });
+monthPick.addEventListener('change', renderForecast);
 forecastName.addEventListener('input', updateMessage);
 copyBtn.addEventListener('click', () => {
   const done = () => {
@@ -409,7 +535,7 @@ form.addEventListener('submit', e => {
     const input = readInput();
     const data = HoroscopeCalc.calculate(input);
     renderMeta(input, data);
-    renderWheel(data);
+    renderWheel(input, data);
     renderPlanets(data);
     renderHouses(data);
     renderAspects(data);

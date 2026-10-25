@@ -65,12 +65,16 @@
           <button type="button" class="fc-tab" data-period="month" aria-pressed="false">来月</button>
         </div>
         <div class="forecast-controls">
-          <label id="week-label">週の初日
-            <input type="date" id="week-start">
-          </label>
-          <label id="month-label" hidden>月
-            <input type="month" id="month-pick">
-          </label>
+          <div class="fc-nav">
+            <button type="button" class="btn fc-step" id="fc-prev" aria-label="前の週">‹ 前の週</button>
+            <label id="week-label">週の初日
+              <input type="date" id="week-start">
+            </label>
+            <label id="month-label" hidden>月
+              <select id="month-pick"></select>
+            </label>
+            <button type="button" class="btn fc-step" id="fc-next" aria-label="次の週">次の週 ›</button>
+          </div>
           <label>名前（伝える文章用・任意）
             <input type="text" id="forecast-name" maxlength="20" placeholder="例：さくら">
           </label>
@@ -91,8 +95,25 @@
 
       <div class="control-group">
         <h2>ホロスコープ</h2>
+        <div class="fc-tabs" role="group" aria-label="表示するチャート">
+          <button type="button" class="fc-tab wheel-tab is-active" data-wheel="natal" aria-pressed="true">出生図</button>
+          <button type="button" class="fc-tab wheel-tab" data-wheel="today" aria-pressed="false">今日の星</button>
+          <button type="button" class="fc-tab wheel-tab" data-wheel="both" aria-pressed="false">出生図＋今日</button>
+        </div>
         <div class="wheel" id="wheel"></div>
         <p class="note" id="wheel-note"></p>
+        <div class="today-panel" id="today-panel" hidden>
+          <div class="today-head">
+            <h3 id="today-title">今日の星</h3>
+            <button type="button" class="btn btn-sm fc-step" id="today-refresh">今の時刻で更新</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="horo-table" id="today-table">
+              <thead><tr><th>天体</th><th>サイン</th><th>度数</th><th id="today-house-head">ハウス</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="control-group">
