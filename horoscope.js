@@ -221,17 +221,40 @@ function renderBalance(data) {
 }
 
 const weekStartInput = document.getElementById('week-start');
+const monthPick = document.getElementById('month-pick');
 const forecastName = document.getElementById('forecast-name');
 const forecastMessage = document.getElementById('forecast-message');
 const copyBtn = document.getElementById('copy-btn');
+const periodTabs = document.querySelectorAll('.fc-tab');
 let lastChart = null;
+let period = 'week';
+let lastForecast = null;
+
+function localToday(tzOffset) {
+  const d = new Date(Date.now() + tzOffset * 3600000);
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+}
 
 function todayString(tzOffset) {
-  const d = new Date(Date.now() + tzOffset * 3600000);
-  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+  const t = localToday(tzOffset);
+  return `${t.year}-${pad2(t.month)}-${pad2(t.day)}`;
+}
+
+function nextMonthString(tzOffset) {
+  const t = localToday(tzOffset);
+  return t.month === 12 ? `${t.year + 1}-01` : `${t.year}-${pad2(t.month + 1)}`;
+}
+
+function forecastTitle(f, tzOffset) {
+  const t = localToday(tzOffset);
+  if (f.kind === 'week') return weekStartInput.value === todayString(tzOffset) ? '今週の星読み' : '1週間の星読み';
+  if (f.year === t.year && f.month === t.month) return '今月の運勢';
+  if (`${f.year}-${pad2(f.month)}` === nextMonthString(tzOffset)) return '来月の運勢';
+  return `${f.year}年${f.month}月の運勢`;
 }
 
 const RATING_LABEL = { lucky: '★ ラッキー', caution: '⚠ 注意', normal: '・ おだやか' };
+const RATING_MARK = { lucky: '★', caution: '⚠', normal: '' };
 
 function aspectLine(a) {
   const time = a.hour !== null && a.hour !== undefined ? `<span class="fc-time">${a.hour}時ごろ</span>` : '';
@@ -239,54 +262,125 @@ function aspectLine(a) {
   return `<li class="fc-${kind}"><span class="fc-mark">${a.score >= 0 ? '◎' : '△'}</span>${time}${a.text}</li>`;
 }
 
+function highlightCard(kind, heading, days, sign) {
+  if (!days.length) return '';
+  const label = HoroscopeForecast.dayLabel;
+  const items = days.map(d => {
+    const top = d.aspects.find(a => Math.sign(a.score) === sign);
+    return `<li><a class="fc-date" href="#fc-day-${d.index}">${label(d)}</a><p>${top ? top.text : d.moonText}</p></li>`;
+  }).join('');
+  return `<div class="fc-highlight fc-highlight-${kind}"><h3>${heading}</h3><ul class="fc-pick">${items}</ul></div>`;
+}
+
+function setPeriod(next) {
+  period = next;
+  periodTabs.forEach(tab => {
+    const active = tab.dataset.period === period;
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-pressed', String(active));
+  });
+  document.getElementById('week-label').hidden = period !== 'week';
+  document.getElementById('month-label').hidden = period !== 'month';
+  if (lastChart) {
+    if (period === 'week') weekStartInput.value = todayString(lastChart.input.tzOffset);
+    else monthPick.value = nextMonthString(lastChart.input.tzOffset);
+  }
+  renderForecast();
+}
+
 function renderForecast() {
   if (!lastChart) return;
   const { input, data } = lastChart;
-  if (!weekStartInput.value) weekStartInput.value = todayString(input.tzOffset);
-  const [year, month, day] = weekStartInput.value.split('-').map(Number);
-  const week = HoroscopeForecast.weekly(data, { year, month, day, tzOffset: input.tzOffset, lat: input.lat, lon: input.lon });
+  const place = { tzOffset: input.tzOffset, lat: input.lat, lon: input.lon };
+  let f;
+  if (period === 'month') {
+    if (!monthPick.value) monthPick.value = nextMonthString(input.tzOffset);
+    const [year, month] = monthPick.value.split('-').map(Number);
+    f = HoroscopeForecast.monthly(data, { year, month, ...place });
+  } else {
+    if (!weekStartInput.value) weekStartInput.value = todayString(input.tzOffset);
+    const [year, month, day] = weekStartInput.value.split('-').map(Number);
+    f = HoroscopeForecast.weekly(data, { year, month, day, ...place });
+  }
+  const isMonth = f.kind === 'month';
+  const title = forecastTitle(f, input.tzOffset);
   const label = HoroscopeForecast.dayLabel;
+  document.getElementById('forecast-title').textContent = `${title}（${HoroscopeForecast.periodLabel(f)}）`;
 
-  const highlights = [];
-  if (week.luckyDay) {
-    const top = week.luckyDay.aspects.find(a => a.score > 0);
-    highlights.push(`<div class="fc-highlight fc-highlight-lucky"><h3>★ 逃さないでほしいラッキーデー</h3><p class="fc-date">${label(week.luckyDay)}</p><p>${top ? top.text : week.luckyDay.moonText}</p></div>`);
-  }
-  if (week.cautionDay) {
-    const top = week.cautionDay.aspects.find(a => a.score < 0);
-    highlights.push(`<div class="fc-highlight fc-highlight-caution"><h3>⚠ 気を付けたい日</h3><p class="fc-date">${label(week.cautionDay)}</p><p>${top ? top.text : week.cautionDay.moonText}</p></div>`);
-  }
-  const notes = [];
-  if (week.mercuryRetro) notes.push('<li class="fc-bad"><span class="fc-mark">△</span>今週は水星が逆行中。連絡ミスや予定の行き違いに気を付けて。</li>');
-  week.background.slice(0, 3).forEach(b => notes.push(aspectLine(b)));
+  const highlights = [
+    highlightCard('lucky', '★ 逃さないでほしいラッキーデー', f.luckyDays, 1),
+    highlightCard('caution', '⚠ 気を付けたい日', f.cautionDays, -1),
+  ];
+  const notes = f.mercuryRetro.map(r =>
+    `<li class="fc-bad"><span class="fc-mark">△</span>水星逆行（${HoroscopeForecast.retroText(r)}）：連絡ミスや予定の行き違いに気を付けて。</li>`);
+  f.background.slice(0, 3).forEach(b => notes.push(aspectLine(b)));
   if (notes.length) {
-    highlights.push(`<div class="fc-highlight fc-highlight-week"><h3>今週ずっと続く星の影響</h3><ul class="fc-list">${notes.join('')}</ul></div>`);
+    highlights.push(`<div class="fc-highlight fc-highlight-week"><h3>${isMonth ? '今月' : '今週'}ずっと続く星の影響</h3><ul class="fc-list">${notes.join('')}</ul></div>`);
   }
   document.getElementById('forecast-highlights').innerHTML = highlights.join('');
 
-  document.getElementById('forecast-strip').innerHTML = week.days.map(d => `
-    <a class="fc-day fc-${d.rating}${d === week.luckyDay ? ' fc-best' : ''}" href="#fc-day-${d.index}">
-      <span class="fc-wd">${d.weekday}</span>
-      <span class="fc-md">${d.month}/${d.day}</span>
-      <span class="fc-badge">${RATING_LABEL[d.rating]}</span>
-      <span class="fc-moon">月 ${d.moonSign.symbol}︎</span>
-    </a>`).join('');
+  const strip = document.getElementById('forecast-strip');
+  strip.classList.toggle('fc-calendar', isMonth);
+  const lucky = new Set(f.luckyDays);
+  const caution = new Set(f.cautionDays);
+  // 選ばれたラッキーデー・気を付けたい日は、点数の段階に関係なく印を付ける
+  const badgeOf = d => (lucky.has(d) ? '★ ラッキー' : caution.has(d) ? '⚠ 注意' : RATING_LABEL[d.rating]);
+  const markOf = d => (lucky.has(d) ? '★' : caution.has(d) ? '⚠' : RATING_MARK[d.rating]);
+  const cell = d => {
+    const pickClass = lucky.has(d) ? ' fc-best' : caution.has(d) ? ' fc-worst' : '';
+    const moonEvent = d.events.find(e => e.type === 'moon' && (e.quarter === 0 || e.quarter === 2));
+    return `
+    <a class="fc-day fc-${lucky.has(d) ? 'lucky' : caution.has(d) ? 'caution' : d.rating}${pickClass}" href="#fc-day-${d.index}" title="${label(d)} ${badgeOf(d)}">
+      ${isMonth ? '' : `<span class="fc-wd">${d.weekday}</span>`}
+      <span class="fc-md">${isMonth ? d.day : `${d.month}/${d.day}`}</span>
+      <span class="fc-badge">${isMonth ? markOf(d) || '&nbsp;' : badgeOf(d)}</span>
+      <span class="fc-moon">${moonEvent ? (moonEvent.quarter === 0 ? '●' : '○') : '月'} ${d.moonSign.symbol}︎</span>
+    </a>`;
+  };
+  if (isMonth) {
+    const firstWeekday = ['日', '月', '火', '水', '木', '金', '土'].indexOf(f.days[0].weekday);
+    strip.innerHTML = ['日', '月', '火', '水', '木', '金', '土'].map(w => `<span class="fc-head">${w}</span>`).join('') +
+      '<span class="fc-blank"></span>'.repeat(firstWeekday) + f.days.map(cell).join('');
+  } else {
+    strip.innerHTML = f.days.map(cell).join('');
+  }
 
-  document.getElementById('forecast-days').innerHTML = week.days.map(d => `
-    <div class="fc-detail fc-${d.rating}" id="fc-day-${d.index}">
-      <h3>${label(d)}<span class="fc-badge">${RATING_LABEL[d.rating]}</span></h3>
+  document.getElementById('forecast-days').innerHTML = f.days.map(d => {
+    const open = !isMonth || d.rating !== 'normal' || lucky.has(d) || caution.has(d);
+    return `
+    <details class="fc-detail fc-${lucky.has(d) ? 'lucky' : caution.has(d) ? 'caution' : d.rating}" id="fc-day-${d.index}"${open ? ' open' : ''}>
+      <summary><h3>${label(d)}<span class="fc-badge">${badgeOf(d)}</span></h3></summary>
       <p class="fc-moonline">月は${d.moonSign.name}：${d.moonText}</p>
       <ul class="fc-list">
         ${d.events.map(e => `<li class="fc-event"><span class="fc-mark">☆</span>${e.text}</li>`).join('')}
         ${d.aspects.slice(0, 3).map(aspectLine).join('')}
       </ul>
-    </div>`).join('');
+    </details>`;
+  }).join('');
 
-  forecastMessage.value = HoroscopeForecast.toMessage(week, forecastName.value.trim());
+  lastForecast = { f, title };
+  updateMessage();
 }
 
+function updateMessage() {
+  if (!lastForecast) return;
+  forecastMessage.value = HoroscopeForecast.toMessage(lastForecast.f, forecastName.value.trim(), lastForecast.title);
+}
+
+// 日付リンクで閉じている日の詳細を開く
+document.getElementById('forecast-section').addEventListener('click', e => {
+  const link = e.target.closest('a[href^="#fc-day-"]');
+  if (!link) return;
+  e.preventDefault();
+  const target = document.getElementById(link.getAttribute('href').slice(1));
+  if (!target) return;
+  target.open = true;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+periodTabs.forEach(tab => tab.addEventListener('click', () => setPeriod(tab.dataset.period)));
 document.getElementById('week-btn').addEventListener('click', renderForecast);
-forecastName.addEventListener('input', renderForecast);
+forecastName.addEventListener('input', updateMessage);
 copyBtn.addEventListener('click', () => {
   const done = () => {
     copyBtn.textContent = 'コピーしました';

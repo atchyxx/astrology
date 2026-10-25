@@ -91,17 +91,19 @@
   }
 
   /**
+   * 指定した期間の日ごとの運勢
    * @param {object} natal  HoroscopeCalc.calculate の結果
-   * @param {object} opts   year, month, day: 週の初日（現地）, tzOffset, lat, lon
+   * @param {object} opts   year, month, day: 初日（現地）, days: 日数, tzOffset, lat, lon
    */
-  function weekly(natal, opts) {
+  function forecast(natal, opts) {
+    const n = opts.days;
     const natalPoints = natal.points.filter(p => p.key !== 'Node');
     const startUtcMs = Date.UTC(opts.year, opts.month - 1, opts.day) - opts.tzOffset * 3600000;
     const noonOf = i => startUtcMs + i * DAY_MS + 12 * 3600000;
 
-    // 前日〜8日目の正午の天体位置（極小判定と逆行・サイン移動の検出用）
+    // 前日〜翌日までの正午の天体位置（極小判定と逆行・サイン移動の検出用）
     const sky = [];
-    for (let i = -1; i <= 7; i++) {
+    for (let i = -1; i <= n; i++) {
       const u = new Date(noonOf(i) + opts.tzOffset * 3600000);
       sky.push(Calc.calculate({
         year: u.getUTCFullYear(), month: u.getUTCMonth() + 1, day: u.getUTCDate(),
@@ -112,7 +114,7 @@
     const at = (i, key) => sky[i + 1].points.find(p => p.key === key);
 
     const days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < n; i++) {
       const moon = at(i, 'Moon');
       days.push({
         index: i,
@@ -125,13 +127,13 @@
       });
     }
 
-    // 速い天体と出生図のアスペクト：その週で最も正確になる日に割り当てる
+    // 速い天体と出生図のアスペクト：最も正確になる日に割り当てる
     FAST.forEach(tKey => {
       natalPoints.forEach(natalPoint => {
         Calc.ASPECTS.forEach(aspect => {
           const orbs = [];
-          for (let i = -1; i <= 7; i++) orbs.push(Math.abs(separation(at(i, tKey).lon, natalPoint.lon) - aspect.angle));
-          for (let i = 0; i < 7; i++) {
+          for (let i = -1; i <= n; i++) orbs.push(Math.abs(separation(at(i, tKey).lon, natalPoint.lon) - aspect.angle));
+          for (let i = 0; i < n; i++) {
             const orb = orbs[i + 1];
             const limit = Math.max(1, Math.abs(at(i, tKey).speed) / 2);
             if (orb > limit || orb > orbs[i] || orb > orbs[i + 2]) continue;
@@ -149,7 +151,7 @@
 
     // 天体のサイン移動・逆行/順行の切り替え
     Calc.PLANETS.filter(p => p.key !== 'Moon').forEach(p => {
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < n; i++) {
         const prev = at(i - 1, p.key), cur = at(i, p.key);
         if (prev.position.index !== cur.position.index) {
           days[i].events.push({ type: 'ingress', text: `${p.name}が${cur.position.sign.name}に入ります。` });
@@ -164,26 +166,33 @@
 
     // 月の満ち欠け
     let q = Astronomy.SearchMoonQuarter(new Date(startUtcMs));
-    while (q.time.date.getTime() < startUtcMs + 7 * DAY_MS) {
+    while (q.time.date.getTime() < startUtcMs + n * DAY_MS) {
       const i = Math.floor((q.time.date.getTime() - startUtcMs) / DAY_MS);
       const local = new Date(q.time.date.getTime() + opts.tzOffset * 3600000);
       const info = QUARTER_TEXT[q.quarter];
       days[i].events.push({
-        type: 'moon', quarter: q.quarter,
+        type: 'moon', quarter: q.quarter, name: info.name,
         text: `${info.name}（${local.getUTCHours()}:${String(local.getUTCMinutes()).padStart(2, '0')}）：${info.text}`,
       });
       q = Astronomy.NextMoonQuarter(q);
     }
 
-    // 水星逆行中は連絡ミスに注意
-    const mercuryRetro = [0, 3, 6].some(i => at(i, 'Mercury').retrograde);
+    // 水星逆行の期間（連絡ミスに注意）
+    const mercuryRetro = [];
+    days.forEach(d => {
+      if (!at(d.index, 'Mercury').retrograde) return;
+      const last = mercuryRetro[mercuryRetro.length - 1];
+      if (last && last.to.index === d.index - 1) last.to = d;
+      else mercuryRetro.push({ from: d, to: d });
+    });
 
-    // 遅い天体：週の真ん中で 1.5° 以内のアスペクトを「今週ずっと続く影響」とする
+    // 遅い天体：期間の真ん中で 1.5° 以内のアスペクトを「期間中ずっと続く影響」とする
+    const mid = Math.floor(n / 2);
     const background = [];
     SLOW.forEach(tKey => {
       natalPoints.forEach(natalPoint => {
         Calc.ASPECTS.forEach(aspect => {
-          const orb = Math.abs(separation(at(3, tKey).lon, natalPoint.lon) - aspect.angle);
+          const orb = Math.abs(separation(at(mid, tKey).lon, natalPoint.lon) - aspect.angle);
           if (orb > 1.5) return;
           const score = aspectScore(tKey, natalPoint.key, aspect.angle);
           background.push({ transit: tKey, natal: natalPoint, aspect, orb, score, text: aspectText(tKey, natalPoint, aspect, score) });
@@ -198,49 +207,73 @@
       d.rating = d.score >= 1.5 ? 'lucky' : d.score <= -1.5 ? 'caution' : 'normal';
     });
 
-    const best = days.reduce((a, b) => (b.score > a.score ? b : a));
-    const worst = days.reduce((a, b) => (b.score < a.score ? b : a));
+    // 1週間なら1日ずつ、1か月なら3日ずつ選ぶ
+    const pick = n > 7 ? 3 : 1;
+    const luckyDays = days.filter(d => d.score > 0).sort((a, b) => b.score - a.score).slice(0, pick);
+    const cautionDays = days.filter(d => d.score < 0).sort((a, b) => a.score - b.score).slice(0, pick);
+    luckyDays.sort((a, b) => a.index - b.index);
+    cautionDays.sort((a, b) => a.index - b.index);
 
-    return {
-      days,
-      background,
-      mercuryRetro,
-      luckyDay: best.score > 0 ? best : null,
-      cautionDay: worst.score < 0 ? worst : null,
-    };
+    return { days, background, mercuryRetro, luckyDays, cautionDays };
+  }
+
+  function weekly(natal, opts) {
+    return { kind: 'week', ...forecast(natal, { ...opts, days: 7 }) };
+  }
+
+  function monthly(natal, opts) {
+    const days = new Date(Date.UTC(opts.year, opts.month, 0)).getUTCDate();
+    return { kind: 'month', year: opts.year, month: opts.month, ...forecast(natal, { ...opts, day: 1, days }) };
   }
 
   function dayLabel(d) {
     return `${d.month}/${d.day}（${d.weekday}）`;
   }
 
+  function periodLabel(f) {
+    if (f.kind === 'month') return `${f.year}年${f.month}月`;
+    return `${dayLabel(f.days[0])}〜${dayLabel(f.days[f.days.length - 1])}`;
+  }
+
+  function retroText(r) {
+    return r.from === r.to ? dayLabel(r.from) : `${dayLabel(r.from)}〜${dayLabel(r.to)}`;
+  }
+
   // 人に伝えるための文章
-  function toMessage(week, name) {
-    const first = week.days[0], last = week.days[6];
-    const lines = [`【${name ? name + 'さんの' : ''}今週の星読み ${dayLabel(first)}〜${dayLabel(last)}】`, ''];
-    if (week.luckyDay) {
-      const top = week.luckyDay.aspects.find(a => a.score > 0);
-      lines.push(`★ 逃さないでほしいラッキーデー：${dayLabel(week.luckyDay)}`);
-      if (top) lines.push(`　${top.text}`);
+  function toMessage(f, name, title) {
+    const isMonth = f.kind === 'month';
+    const lines = [`【${name ? name + 'さんの' : ''}${title} ${periodLabel(f)}】`, ''];
+    const dayLines = (list, mark, heading, sign) => {
+      if (!list.length) return;
+      lines.push(`${mark} ${heading}：${list.map(dayLabel).join('、')}`);
+      list.forEach(d => {
+        const top = d.aspects.find(a => Math.sign(a.score) === sign);
+        if (top) lines.push(`　${isMonth ? dayLabel(d) + ' ' : ''}${top.text}`);
+      });
+    };
+    dayLines(f.luckyDays, '★', '逃さないでほしいラッキーデー', 1);
+    dayLines(f.cautionDays, '⚠', '気を付けたい日', -1);
+    f.mercuryRetro.forEach(r => lines.push(`⚠ 水星逆行（${retroText(r)}）：連絡ミスや予定の行き違いに気を付けて。`));
+    if (f.background.length) {
+      lines.push('', `◆ ${isMonth ? '今月' : '今週'}ずっと続く星の影響`);
+      f.background.slice(0, 2).forEach(b => lines.push(`　${b.text}`));
     }
-    if (week.cautionDay) {
-      const top = week.cautionDay.aspects.find(a => a.score < 0);
-      lines.push(`⚠ 気を付けたい日：${dayLabel(week.cautionDay)}`);
-      if (top) lines.push(`　${top.text}`);
+    if (isMonth) {
+      const moons = f.days.flatMap(d => d.events.filter(e => e.type === 'moon' && (e.quarter === 0 || e.quarter === 2)).map(e => `${dayLabel(d)} ${e.text}`));
+      if (moons.length) {
+        lines.push('', '◆ 新月・満月');
+        moons.forEach(t => lines.push(`　${t}`));
+      }
+    } else {
+      lines.push('', '◆ 毎日のポイント');
+      f.days.forEach(d => {
+        const mark = d.rating === 'lucky' ? '★' : d.rating === 'caution' ? '⚠' : '・';
+        const top = d.aspects[0];
+        lines.push(`${mark} ${dayLabel(d)} 月は${d.moonSign.name}：${d.moonText}${top ? '。' + top.text : '。'}`);
+      });
     }
-    if (week.mercuryRetro) lines.push('⚠ 今週は水星が逆行中。連絡ミスや予定の行き違いに気を付けて。');
-    if (week.background.length) {
-      lines.push('', '◆ 今週ずっと続く星の影響');
-      week.background.slice(0, 2).forEach(b => lines.push(`　${b.text}`));
-    }
-    lines.push('', '◆ 毎日のポイント');
-    week.days.forEach(d => {
-      const mark = d.rating === 'lucky' ? '★' : d.rating === 'caution' ? '⚠' : '・';
-      const top = d.aspects[0];
-      lines.push(`${mark} ${dayLabel(d)} 月は${d.moonSign.name}：${d.moonText}${top ? '。' + top.text : '。'}`);
-    });
     return lines.join('\n');
   }
 
-  return { weekly, toMessage, dayLabel };
+  return { weekly, monthly, toMessage, dayLabel, periodLabel, retroText };
 });
