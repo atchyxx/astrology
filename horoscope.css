@@ -1,0 +1,189 @@
+.horo-form {
+  margin-bottom: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 16px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 8px 10px;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  outline: none;
+  border-color: #2b6cb0;
+}
+
+.form-grid .checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  align-self: end;
+  padding-bottom: 10px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-print {
+  background: #718096;
+  color: white;
+}
+
+.btn-print:hover { background: #4a5568; }
+
+.error-text {
+  color: #c53030;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+#result .control-group {
+  margin-bottom: 20px;
+}
+
+.result-meta dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  font-size: 0.95rem;
+}
+
+.result-meta dt {
+  color: #718096;
+}
+
+.horo-table tbody td.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.horo-table tbody td.point-name,
+.horo-table tbody td.sign-name {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.horo-table tbody th {
+  background: #edf2f7;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.planet-symbol,
+.sign-symbol {
+  display: inline-block;
+  width: 1.6em;
+  font-size: 1.1em;
+  text-align: center;
+}
+
+.retro {
+  margin-left: 4px;
+  color: #c53030;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.el-火 { color: #c53030; }
+.el-地 { color: #2f855a; }
+.el-風 { color: #b7791f; }
+.el-水 { color: #2b6cb0; }
+
+.balance-list {
+  text-align: left;
+  font-size: 1.1em;
+  letter-spacing: 0.2em;
+}
+
+.aspect-grid {
+  min-width: 0;
+  width: auto;
+  margin: 0 auto;
+}
+
+.aspect-grid thead th,
+.aspect-grid tbody th {
+  padding: 6px 4px;
+  min-width: 38px;
+  font-size: 0.85rem;
+}
+
+.aspect-grid tbody th {
+  background: #2b6cb0;
+  color: white;
+}
+
+.aspect-grid tbody td {
+  padding: 2px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  line-height: 1.1;
+}
+
+.aspect-grid tbody td.empty {
+  border: none;
+  background: white;
+}
+
+.aspect-grid td.asp span {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.aspect-grid td.asp small {
+  font-size: 0.65em;
+  color: #718096;
+}
+
+.asp-0   { color: #6b46c1; }
+.asp-60  { color: #2b6cb0; }
+.asp-90  { color: #c53030; }
+.asp-120 { color: #2f855a; }
+.asp-180 { color: #c05621; }
+
+.note {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 10px;
+  line-height: 1.7;
+}
+
+.back-link {
+  margin: 24px 0;
+  font-size: 0.9rem;
+}
+
+.back-link a {
+  color: #2b6cb0;
+}
+
+@media print {
+  body { background: white; }
+  header { box-shadow: none; }
+  .horo-form, .back-link { display: none; }
+  #result .control-group { box-shadow: none; break-inside: avoid; }
+}

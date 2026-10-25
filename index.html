@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホロスコープ表</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="horoscope.css">
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>ホロスコープ表</h1>
+    <p class="subtitle">日本占星天歴の形式で天体位置・ハウス・アスペクトを一覧表示</p>
+  </header>
+
+  <main>
+    <form class="control-group horo-form" id="horo-form">
+      <h2>出生データ</h2>
+      <div class="form-grid">
+        <label>生年月日
+          <input type="date" id="birth-date" required>
+        </label>
+        <label>出生時刻
+          <input type="time" id="birth-time" value="12:00">
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="time-unknown"> 時刻不明（正午で計算）
+        </label>
+        <label>時差
+          <select id="tz-offset"></select>
+        </label>
+        <label>出生地
+          <select id="birth-place"></select>
+        </label>
+        <label>緯度（北緯＋）
+          <input type="number" id="birth-lat" step="0.01" min="-89.99" max="89.99" required>
+        </label>
+        <label>経度（東経＋）
+          <input type="number" id="birth-lon" step="0.01" min="-180" max="180" required>
+        </label>
+        <label>ハウス分割法
+          <select id="house-system">
+            <option value="placidus">プラシーダス</option>
+            <option value="equal">イコール</option>
+            <option value="whole">ホールサイン</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">ホロスコープを作成</button>
+        <button type="button" class="btn btn-print" id="print-btn" hidden>印刷</button>
+      </div>
+      <p class="error-text" id="error-text" hidden></p>
+    </form>
+
+    <section id="result" hidden>
+      <div class="control-group result-meta" id="result-meta"></div>
+
+      <div class="control-group">
+        <h2>天体位置</h2>
+        <div class="table-wrapper">
+          <table class="horo-table" id="planet-table">
+            <thead>
+              <tr>
+                <th>天体</th>
+                <th>サイン</th>
+                <th>度数</th>
+                <th>黄経</th>
+                <th>日運動</th>
+                <th>ハウス</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="control-group" id="house-section">
+        <h2>ハウスカスプ</h2>
+        <div class="table-wrapper">
+          <table class="horo-table" id="house-table">
+            <thead>
+              <tr><th>ハウス</th><th>サイン</th><th>度数</th><th>ハウス</th><th>サイン</th><th>度数</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h2>アスペクト</h2>
+        <div class="table-wrapper">
+          <table class="aspect-grid" id="aspect-grid"></table>
+        </div>
+        <p class="note" id="aspect-legend"></p>
+      </div>
+
+      <div class="control-group">
+        <h2>エレメント・クオリティ</h2>
+        <div class="table-wrapper">
+          <table class="horo-table" id="balance-table"></table>
+        </div>
+      </div>
+
+      <p class="note">
+        天体位置は天文計算ライブラリ（Astronomy Engine）による地心・トロピカル黄経です。
+        ドラゴンヘッドは平均値です。サマータイム実施期間（1948〜1951年の夏など）は時差を調整してください。
+      </p>
+    </section>
+  </main>
+
+  <script src="horoscope-calc.js"></script>
+  <script src="horoscope.js"></script>
+</body>
+</html>
