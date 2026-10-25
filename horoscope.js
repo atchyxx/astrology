@@ -146,6 +146,13 @@ function renderMeta(input, data) {
     '<h2>基本データ</h2><dl>' + rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('') + '</dl>';
 }
 
+function renderWheel(data) {
+  document.getElementById('wheel').innerHTML = HoroscopeWheel.render(data);
+  document.getElementById('wheel-note').textContent = data.houses
+    ? 'アセンダント（ASC）を左に置いています。中心の線はアスペクト（緑：120°、青点線：60°、赤：90°、橙：180°）です。'
+    : '時刻不明のため、牡羊座0°を左に置き、ハウスは表示していません。中心の線はアスペクト（緑：120°、青点線：60°、赤：90°、橙：180°）です。';
+}
+
 function renderPlanets(data) {
   const tbody = document.querySelector('#planet-table tbody');
   tbody.innerHTML = data.points.map(p => `
@@ -224,6 +231,7 @@ form.addEventListener('submit', e => {
     const input = readInput();
     const data = HoroscopeCalc.calculate(input);
     renderMeta(input, data);
+    renderWheel(data);
     renderPlanets(data);
     renderHouses(data);
     renderAspects(data);

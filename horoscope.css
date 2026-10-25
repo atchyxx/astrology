@@ -187,3 +187,15 @@
   .horo-form, .back-link { display: none; }
   #result .control-group { box-shadow: none; break-inside: avoid; }
 }
+
+.wheel {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.wheel-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'Noto Sans Symbols 2', 'DejaVu Sans', sans-serif;
+}
