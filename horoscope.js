@@ -418,10 +418,16 @@ form.addEventListener('submit', e => {
     renderForecast();
     result.hidden = false;
     printBtn.hidden = false;
-    result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 読み込み時の例の表示ではスクロールしない
+    if (e.isTrusted) result.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     showError(err.message);
   }
 });
 
 initForm();
+
+// 開いた直後に例のホロスコープを表示する
+dateInput.value = '2000-01-01';
+timeInput.value = '21:00';
+form.dispatchEvent(new Event('submit', { cancelable: true }));
