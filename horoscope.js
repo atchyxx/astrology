@@ -83,6 +83,97 @@ function initForm() {
   printBtn.addEventListener('click', () => window.print());
 }
 
+// 地名検索：国内は国土地理院、見つからなければ OpenStreetMap（Nominatim）で探す
+const placeQuery = document.getElementById('place-query');
+const placeStatus = document.getElementById('place-status');
+const placeResults = document.getElementById('place-results');
+
+async function searchJapan(q) {
+  const res = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`);
+  if (!res.ok) throw new Error('search failed');
+  const list = await res.json();
+  return list.slice(0, 10).map(item => ({
+    name: item.properties.title,
+    lat: item.geometry.coordinates[1],
+    lon: item.geometry.coordinates[0],
+    japan: true,
+  }));
+}
+
+async function searchWorld(q) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=8&accept-language=ja&q=${encodeURIComponent(q)}`);
+  if (!res.ok) throw new Error('search failed');
+  const list = await res.json();
+  return list.map(item => ({
+    name: item.display_name,
+    lat: parseFloat(item.lat),
+    lon: parseFloat(item.lon),
+    japan: / 日本$|Japan$/.test(item.display_name),
+  }));
+}
+
+async function searchPlace() {
+  const q = placeQuery.value.trim();
+  placeResults.innerHTML = '';
+  if (!q) {
+    placeStatus.textContent = '地名や住所を入力してください。';
+    return;
+  }
+  placeStatus.textContent = '検索しています…';
+  let results = [];
+  let failed = 0;
+  for (const search of [searchJapan, searchWorld]) {
+    try {
+      results = await search(q);
+    } catch (err) {
+      failed++;
+    }
+    if (results.length) break;
+  }
+  if (!results.length) {
+    placeStatus.textContent = failed === 2
+      ? '地名検索に接続できませんでした。この画面では使えない場合があります。緯度・経度を直接入力してください（地図アプリで場所を長押しすると表示されます）。'
+      : '見つかりませんでした。市区町村名から入れるなど、書き方を変えて試してください。';
+    return;
+  }
+  placeStatus.textContent = `${results.length}件見つかりました。生まれた場所を選んでください。`;
+  results.forEach(r => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'place-result';
+    btn.textContent = r.name;
+    btn.addEventListener('click', () => choosePlace(r));
+    placeResults.appendChild(btn);
+  });
+}
+
+function choosePlace(r) {
+  let opt = placeSelect.querySelector('option[value="searched"]');
+  if (!opt) {
+    opt = document.createElement('option');
+    opt.value = 'searched';
+    placeSelect.insertBefore(opt, placeSelect.firstChild);
+  }
+  opt.textContent = r.name;
+  opt.dataset.lat = r.lat.toFixed(4);
+  opt.dataset.lon = r.lon.toFixed(4);
+  placeSelect.value = 'searched';
+  applyPlace();
+  if (r.japan) tzSelect.value = '9';
+  placeResults.innerHTML = '';
+  placeStatus.textContent = r.japan
+    ? `「${r.name}」に設定しました。`
+    : `「${r.name}」に設定しました。海外の場合は「時差」も出生地に合わせて選んでください。`;
+}
+
+document.getElementById('place-search-btn').addEventListener('click', searchPlace);
+placeQuery.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    searchPlace();
+  }
+});
+
 function applyPlace() {
   const opt = placeSelect.selectedOptions[0];
   if (!opt || opt.value === 'custom') return;
@@ -118,11 +209,11 @@ function signCell(pos) {
 }
 
 function renderMeta(input, data) {
-  const place = placeSelect.value === 'custom' ? 'その他' : placeSelect.value;
+  const place = placeSelect.value === 'custom' ? 'その他' : placeSelect.selectedOptions[0].textContent;
   const tz = `UTC${input.tzOffset >= 0 ? '+' : '−'}${Math.abs(input.tzOffset)}`;
   const time = input.timeKnown ? `${pad2(input.hour)}:${pad2(input.minute)}` : '時刻不明（正午で計算）';
-  const latText = `${input.lat >= 0 ? '北緯' : '南緯'}${Math.abs(input.lat).toFixed(2)}°`;
-  const lonText = `${input.lon >= 0 ? '東経' : '西経'}${Math.abs(input.lon).toFixed(2)}°`;
+  const latText = `${input.lat >= 0 ? '北緯' : '南緯'}${Math.abs(input.lat).toFixed(4)}°`;
+  const lonText = `${input.lon >= 0 ? '東経' : '西経'}${Math.abs(input.lon).toFixed(4)}°`;
   const u = data.utc;
   const utcText = `${u.getUTCFullYear()}/${pad2(u.getUTCMonth() + 1)}/${pad2(u.getUTCDate())} ${pad2(u.getUTCHours())}:${pad2(u.getUTCMinutes())}`;
   const lstH = Math.floor(data.lst);

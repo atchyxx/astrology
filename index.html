@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ホロスコープ表</title>
-  <link rel="stylesheet" href="style.css?v=202610251207">
-  <link rel="stylesheet" href="horoscope.css?v=202610251207">
+  <link rel="stylesheet" href="style.css?v=202611091330">
+  <link rel="stylesheet" href="horoscope.css?v=202611091330">
   <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 </head>
 <body>
@@ -33,11 +33,20 @@
         <label>出生地
           <select id="birth-place"></select>
         </label>
+        <div class="place-search">
+          <label for="place-query">地名・住所で探す（市区町村や町名まで）</label>
+          <div class="place-search-row">
+            <input type="search" id="place-query" placeholder="例：横浜市港北区、札幌市中央区北1条、Paris">
+            <button type="button" class="btn btn-primary" id="place-search-btn">検索</button>
+          </div>
+          <p class="place-status" id="place-status" role="status"></p>
+          <div class="place-results" id="place-results"></div>
+        </div>
         <label>緯度（北緯＋）
-          <input type="number" id="birth-lat" step="0.01" min="-89.99" max="89.99" required>
+          <input type="number" id="birth-lat" step="any" min="-89.99" max="89.99" required>
         </label>
         <label>経度（東経＋）
-          <input type="number" id="birth-lon" step="0.01" min="-180" max="180" required>
+          <input type="number" id="birth-lon" step="any" min="-180" max="180" required>
         </label>
         <label>ハウス分割法
           <select id="house-system">
@@ -169,9 +178,9 @@
     </section>
   </main>
 
-  <script src="horoscope-calc.js?v=202610251207"></script>
-  <script src="horoscope-wheel.js?v=202610251207"></script>
-  <script src="horoscope-forecast.js?v=202610251207"></script>
-  <script src="horoscope.js?v=202610251207"></script>
+  <script src="horoscope-calc.js?v=202611091330"></script>
+  <script src="horoscope-wheel.js?v=202611091330"></script>
+  <script src="horoscope-forecast.js?v=202611091330"></script>
+  <script src="horoscope.js?v=202611091330"></script>
 </body>
 </html>

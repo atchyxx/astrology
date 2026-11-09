@@ -32,6 +32,51 @@
   border-color: #2b6cb0;
 }
 
+.place-search {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.place-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.place-search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-status:empty { display: none; }
+
+.place-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.place-result {
+  text-align: left;
+  padding: 8px 10px;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 6px;
+  background: white;
+  color: #2d3748;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.place-result:hover,
+.place-result:focus-visible {
+  border-color: #2b6cb0;
+  background: #ebf8ff;
+}
+
 .form-grid .checkbox-label {
   flex-direction: row;
   align-items: center;
