@@ -4,9 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ホロスコープ表</title>
-  <link rel="stylesheet" href="style.css?v=202611091346">
-  <link rel="stylesheet" href="horoscope.css?v=202611091346">
-  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=202611091356">
+  <link rel="stylesheet" href="horoscope.css?v=202611091356">
+  <!-- Astronomy Engine 2.1.19（MIT License, https://github.com/cosinekitty/astronomy）。学校などで外部サイトが使えなくても動くよう同梱 -->
+  <script src="vendor/astronomy.browser.min.js?v=2.1.19"></script>
+  <script>
+    // 予期しないエラーで表示が止まったとき、原因を画面に出す
+    window.addEventListener('error', e => {
+      const el = document.getElementById('error-text');
+      if (!el) return;
+      el.textContent = `表示中にエラーが起きました（${e.message}）。ページを再読み込みしても直らない場合は、この文をお知らせください。`;
+      el.hidden = false;
+    });
+  </script>
 </head>
 <body>
   <header>
@@ -191,10 +201,10 @@
     </section>
   </main>
 
-  <script src="horoscope-calc.js?v=202611091346"></script>
-  <script src="horoscope-wheel.js?v=202611091346"></script>
-  <script src="horoscope-reading.js?v=202611091346"></script>
-  <script src="horoscope-forecast.js?v=202611091346"></script>
-  <script src="horoscope.js?v=202611091346"></script>
+  <script src="horoscope-calc.js?v=202611091356"></script>
+  <script src="horoscope-wheel.js?v=202611091356"></script>
+  <script src="horoscope-reading.js?v=202611091356"></script>
+  <script src="horoscope-forecast.js?v=202611091356"></script>
+  <script src="horoscope.js?v=202611091356"></script>
 </body>
 </html>

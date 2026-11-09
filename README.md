@@ -13,4 +13,4 @@
 - アスペクト表（合・60°・90°・120°・180°、オーブ付き）
 - エレメント・クオリティの集計
 
-天体位置は [Astronomy Engine](https://github.com/cosinekitty/astronomy) による計算値です（インターネット接続が必要）。
+天体位置は [Astronomy Engine](https://github.com/cosinekitty/astronomy)（MIT License、`vendor/` に同梱）による計算値です。地名検索のみインターネット上のサービスを使います。
