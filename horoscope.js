@@ -147,7 +147,11 @@ async function searchPlace() {
   });
 }
 
+// 検索結果から選んだときの検索語（入力したまま選んでいない状態を見分ける）
+let appliedPlaceQuery = '';
+
 function choosePlace(r) {
+  appliedPlaceQuery = placeQuery.value.trim();
   let opt = placeSelect.querySelector('option[value="searched"]');
   if (!opt) {
     opt = document.createElement('option');
@@ -165,6 +169,11 @@ function choosePlace(r) {
     ? `「${r.name}」に設定しました。`
     : `「${r.name}」に設定しました。海外の場合は「時差」も出生地に合わせて選んでください。`;
 }
+
+// 一覧から選んだり緯度・経度を直接入れたりしたら、検索欄の入力は使わない
+const acceptManualPlace = () => { appliedPlaceQuery = placeQuery.value.trim(); };
+placeSelect.addEventListener('change', acceptManualPlace);
+[latInput, lonInput].forEach(el => el.addEventListener('input', acceptManualPlace));
 
 document.getElementById('place-search-btn').addEventListener('click', searchPlace);
 placeQuery.addEventListener('keydown', e => {
@@ -209,7 +218,7 @@ function signCell(pos) {
 }
 
 function renderMeta(input, data) {
-  const place = placeSelect.value === 'custom' ? 'その他' : placeSelect.selectedOptions[0].textContent;
+  const place = placeSelect.value === 'custom' ? '緯度・経度で指定' : placeSelect.selectedOptions[0].textContent;
   const tz = `UTC${input.tzOffset >= 0 ? '+' : '−'}${Math.abs(input.tzOffset)}`;
   const time = input.timeKnown ? `${pad2(input.hour)}:${pad2(input.minute)}` : '時刻不明（正午で計算）';
   const latText = `${input.lat >= 0 ? '北緯' : '南緯'}${Math.abs(input.lat).toFixed(4)}°`;
@@ -657,6 +666,13 @@ form.addEventListener('submit', e => {
     return;
   }
   try {
+    const pendingQuery = placeQuery.value.trim();
+    if (e.isTrusted && pendingQuery && pendingQuery !== appliedPlaceQuery) {
+      searchPlace();
+      showError(`「${pendingQuery}」はまだ出生地に設定されていません。検索結果から生まれた場所を選んでから、もう一度「ホロスコープを作成」を押してください。`);
+      placeQuery.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const input = readInput();
     const data = HoroscopeCalc.calculate(input);
     renderMeta(input, data);
