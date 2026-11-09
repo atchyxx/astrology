@@ -243,6 +243,57 @@
   font-size: 0.95rem;
 }
 
+.reading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.reading-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #fbfdff;
+}
+
+.reading-card h3 {
+  font-size: 0.95rem;
+  color: #2b6cb0;
+  margin-bottom: 4px;
+}
+
+.reading-card p {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.reading-card .reading-sign {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-bottom: 6px;
+}
+
+.reading-symbol {
+  margin-right: 2px;
+}
+
+.reading-extra {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reading-extra h3 {
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.reading-extra > p {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 .forecast-controls {
   display: flex;
   flex-wrap: wrap;

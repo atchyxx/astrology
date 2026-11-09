@@ -598,22 +598,56 @@ document.getElementById('fc-next').addEventListener('click', () => shiftPeriod(1
 weekStartInput.addEventListener('change', () => { if (weekStartInput.value) renderForecast(); });
 monthPick.addEventListener('change', renderForecast);
 forecastName.addEventListener('input', updateMessage);
-copyBtn.addEventListener('click', () => {
-  const done = () => {
-    copyBtn.textContent = 'コピーしました';
-    setTimeout(() => { copyBtn.textContent = 'コピー'; }, 2000);
-  };
-  const fallback = () => {
-    forecastMessage.focus();
-    forecastMessage.select();
-    copyBtn.textContent = '選択しました。コピーしてください';
-  };
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(forecastMessage.value).then(done, fallback);
-  } else {
-    fallback();
-  }
-});
+// テキスト欄の文章をコピーする。使えないときは選択状態にする
+function setupCopy(button, textarea) {
+  button.addEventListener('click', () => {
+    const done = () => {
+      button.textContent = 'コピーしました';
+      setTimeout(() => { button.textContent = 'コピー'; }, 2000);
+    };
+    const fallback = () => {
+      textarea.focus();
+      textarea.select();
+      button.textContent = '選択しました。コピーしてください';
+    };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textarea.value).then(done, fallback);
+    } else {
+      fallback();
+    }
+  });
+}
+
+setupCopy(copyBtn, forecastMessage);
+
+const readingMessage = document.getElementById('reading-message');
+let lastReading = null;
+setupCopy(document.getElementById('reading-copy-btn'), readingMessage);
+
+function renderReading(input, data) {
+  const r = HoroscopeReading.reading(data, input);
+  lastReading = r;
+  document.getElementById('reading-grid').innerHTML = r.sections.map(sec => `
+    <div class="reading-card">
+      <h3>${sec.title}</h3>
+      <p class="reading-sign"><span class="reading-symbol">${ASPECT_POINTS_LABEL[sec.key.toUpperCase()] ? '' : sec.symbol + '\uFE0E'}</span>${sec.pointName}・<span class="sign-symbol">${sec.signSymbol}\uFE0E</span>${sec.sign}</p>
+      <p>${sec.text}</p>
+      ${sec.note ? `<p class="note">${sec.note}</p>` : ''}
+    </div>`).join('');
+  const talents = r.talents.length
+    ? `<h3>才能の組み合わせ</h3><ul class="fc-list">${r.talents.map(t => `<li class="fc-good"><span class="fc-mark">◎</span>${t.text}</li>`).join('')}</ul>`
+    : '';
+  const timeNote = data.houses ? '' : '<p class="note">出生時刻がわかると、第一印象（アセンダント）や向いている仕事（MC）、幸運が広がる分野も表示されます。</p>';
+  document.getElementById('reading-extra').innerHTML =
+    `<h3>星のバランスから見た強み</h3><p>${r.strength}</p>${talents}${timeNote}`;
+  updateReadingMessage();
+}
+
+function updateReadingMessage() {
+  if (lastReading) readingMessage.value = HoroscopeReading.toMessage(lastReading, forecastName.value.trim());
+}
+
+forecastName.addEventListener('input', updateReadingMessage);
 
 form.addEventListener('submit', e => {
   e.preventDefault();
@@ -626,6 +660,7 @@ form.addEventListener('submit', e => {
     const input = readInput();
     const data = HoroscopeCalc.calculate(input);
     renderMeta(input, data);
+    renderReading(input, data);
     renderWheel(input, data);
     renderPlanets(data);
     renderHouses(data);

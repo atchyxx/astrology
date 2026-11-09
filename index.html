@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ホロスコープ表</title>
-  <link rel="stylesheet" href="style.css?v=202611091330">
-  <link rel="stylesheet" href="horoscope.css?v=202611091330">
+  <link rel="stylesheet" href="style.css?v=202611091346">
+  <link rel="stylesheet" href="horoscope.css?v=202611091346">
   <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
 </head>
 <body>
@@ -18,6 +18,9 @@
     <form class="control-group horo-form" id="horo-form">
       <h2>出生データ</h2>
       <div class="form-grid">
+        <label>名前（任意・伝える文章に使います）
+          <input type="text" id="forecast-name" maxlength="20" placeholder="例：さくら">
+        </label>
         <label>生年月日
           <input type="date" id="birth-date" required>
         </label>
@@ -67,6 +70,19 @@
     <section id="result" hidden>
       <div class="control-group result-meta" id="result-meta"></div>
 
+      <div class="control-group" id="reading-section">
+        <h2>星が教えてくれるよいところ</h2>
+        <div class="reading-grid" id="reading-grid"></div>
+        <div class="reading-extra" id="reading-extra"></div>
+        <div class="forecast-message">
+          <div class="forecast-message-head">
+            <h3>伝える文章</h3>
+            <button type="button" class="btn btn-sm btn-copy" id="reading-copy-btn">コピー</button>
+          </div>
+          <textarea id="reading-message" rows="10" readonly></textarea>
+        </div>
+      </div>
+
       <div class="control-group" id="forecast-section">
         <h2 id="forecast-title">今週の星読み</h2>
         <div class="fc-tabs" role="group" aria-label="期間">
@@ -84,9 +100,6 @@
             </label>
             <button type="button" class="btn fc-step" id="fc-next" aria-label="次の週">次の週 ›</button>
           </div>
-          <label>名前（伝える文章用・任意）
-            <input type="text" id="forecast-name" maxlength="20" placeholder="例：さくら">
-          </label>
           <button type="button" class="btn btn-primary" id="week-btn">表示する</button>
         </div>
         <div class="forecast-highlights" id="forecast-highlights"></div>
@@ -178,9 +191,10 @@
     </section>
   </main>
 
-  <script src="horoscope-calc.js?v=202611091330"></script>
-  <script src="horoscope-wheel.js?v=202611091330"></script>
-  <script src="horoscope-forecast.js?v=202611091330"></script>
-  <script src="horoscope.js?v=202611091330"></script>
+  <script src="horoscope-calc.js?v=202611091346"></script>
+  <script src="horoscope-wheel.js?v=202611091346"></script>
+  <script src="horoscope-reading.js?v=202611091346"></script>
+  <script src="horoscope-forecast.js?v=202611091346"></script>
+  <script src="horoscope.js?v=202611091346"></script>
 </body>
 </html>
